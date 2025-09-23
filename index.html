@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Photo Number Extractor - Extract numbers from photos and assign to categories for inspection data management">
+    <title>Photo Number Extractor V6.1.1</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <!-- PNE按鈕移到header最左側 -->
+                <div class="pne-func-btn" tabindex="0" style="margin-right: 8px; position: relative; display:flex; align-items:center; gap:10px;">
+                    <button id="pneMenuBtn" style="background: var(--primary); color: white; border: none; border-radius: 10px; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; box-shadow: 0 2px 8px rgba(30,136,229,0.08); transition: background 0.2s; padding: 0;">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <!-- 下拉選單內容 -->
+                    <div class="pne-dropdown" style="display:none; position:absolute; left:0; top:110%; min-width:260px; color:var(--text); border-radius:10px; box-shadow:0 4px 16px rgba(30,136,229,0.12); z-index:100; overflow:visible;">
+                                            <div class="pne-dropdown-item" data-action="uploadfloorplan"><i class="fas fa-pencil-alt"></i> Open drawing mode</div>
+                    <div class="pne-dropdown-item" data-action="selectfolder"><i class="fas fa-folder-open"></i> Select Photo Folder</div>
+                    <div class="pne-dropdown-item" data-action="open"><i class="fas fa-folder-open"></i> Open PNE file</div>
+                    <div class="pne-dropdown-item" data-action="saveas"><i class="fas fa-file-export"></i> Save as PNE file</div>
+                    <div class="pne-dropdown-item" data-action="exportcsv"><i class="fas fa-file-csv"></i> Export CSV</div>
+                    <div class="pne-dropdown-item" data-action="preview"><i class="fas fa-file-pdf"></i> Defects Report</div>
+                    <div class="pne-dropdown-item" data-action="summary" style="display: none;"><i class="fas fa-info-circle"></i> Photo Assignment Summary</div>
+                    </div>
+                </div>
+                <div id="floorplanThumb" class="floorplan-thumb" title="Open Floor Plan" style="display:none;">
+                    <img id="floorplanThumbImg" alt="Floor plan thumbnail"/>
+                </div>
+                <div class="header-left">
+                    <div class="header-buttons">
+                        <div class="sort-toggle" role="switch" aria-checked="true" aria-label="Sort photos to folder" style="background: rgba(255,255,255,0.15); border-radius: 8px; padding: 7px 10px; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; text-align: center; gap: 8px; height: 42px; min-width: 140px; transition: var(--transition); font-size: 0.7rem; font-weight: 400; border: none;">
+                            <label class="switch">
+                                <input type="checkbox" id="sortToggle" checked>
+                                <span class="slider round"></span>
+                            </label>
+                            <span style="font-size: 0.7rem; font-weight: 400; color: white;">Sorting photo to folder</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="header-fields">
+                        <div class="header-field">
+                            <div class="header-checkbox">
+                                <input type="checkbox" id="locationIdCheck" class="header-checkbox-input">
+                                <label for="locationIdCheck" class="header-checkbox-label"></label>
+                            </div>
+                                            <label for="locationId"><i class="fas fa-map-marker-alt"></i> Inspection no.</label>
+                <input type="text" id="locationId" placeholder="Enter inspection number" aria-label="Inspection no.">
+                        </div>
+                        <div class="header-field">
+                            <div class="header-checkbox">
+                                <input type="checkbox" id="inspectionDateCheck" class="header-checkbox-input">
+                                <label for="inspectionDateCheck" class="header-checkbox-label"></label>
+                            </div>
+                            <label for="inspectionDate"><i class="fas fa-calendar-check"></i> Inspection Date</label>
+                            <input type="date" id="inspectionDate" aria-label="Inspection Date">
+                        </div>
+                        <div class="header-field">
+                            <div class="header-checkbox">
+                                <input type="checkbox" id="floorHeaderCheck" class="header-checkbox-input">
+                                <label for="floorHeaderCheck" class="header-checkbox-label"></label>
+                            </div>
+                            <label for="floorHeader"><i class="fas fa-layer-group"></i> Floor</label>
+                            <input type="text" id="floorHeader" placeholder="Enter floor" aria-label="Floor">
+                        </div>
+                        <div class="header-field">
+                            <div class="header-checkbox">
+                                <input type="checkbox" id="areaNameHeaderCheck" class="header-checkbox-input">
+                                <label for="areaNameHeaderCheck" class="header-checkbox-label"></label>
+                            </div>
+                            <label for="areaNameHeader"><i class="fas fa-map"></i> Area Name</label>
+                            <input type="text" id="areaNameHeader" placeholder="Enter area name" aria-label="Area Name">
+                        </div>
+                        <div class="header-field">
+                            <div class="header-checkbox">
+                                <input type="checkbox" id="roomNoCheck" class="header-checkbox-input">
+                                <label for="roomNoCheck" class="header-checkbox-label"></label>
+                            </div>
+                            <label for="roomNo"><i class="fas fa-door-closed"></i> Room No.</label>
+                            <input type="text" id="roomNo" placeholder="Enter room number" aria-label="Room number">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <main id="main-content">
+            <section aria-labelledby="photo-preview-title">
+                <div class="photo-section">
+                    <div class="photo-preview-container">
+                        <div class="preview-header">
+                            <div>
+                                <h2 class="preview-title" id="photo-preview-title">
+                                    <i class="fas fa-camera"></i> Photo Preview
+                                    <span class="folder-name-display" id="folderNameDisplay"></span>
+                                    <button id="addPhotosBtn" type="button" class="action-btn add-photos-btn" style="display: none; margin-left: 15px; padding: 6px 12px; font-size: 12px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; height: 31px;">
+                                        Add photos
+                                    </button>
+                                </h2>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div class="photo-count">Selected: <span id="selectedCount">0</span> photos
+                                    <div class="zoom-controls">
+                                        <i class="fas fa-search-minus"></i>
+                                        <input type="range" id="zoomSlider" min="80" max="200" value="120" step="10" aria-label="Photo zoom control">
+                                        <i class="fas fa-search-plus"></i>
+                                    </div>
+                                </div>
+                                <button class="action-btn submit-btn" id="submitBtn" aria-label="Submit to table">
+                                    Submit to Table
+                                </button>
+                            </div>
+                        </div>
+                        <input type="file" id="addPhotosFileInput" accept="image/*" multiple style="visibility: hidden; position: absolute; left: -9999px;">
+                        <div class="photo-grid" id="photoGrid" role="grid">
+                            <div class="empty-preview">
+                                <i class="fas fa-images fa-4x"></i>
+                                <p>Select a folder to preview photos</p>
+                                <button id="centerFolderBtn" class="center-folder-btn" onclick="selectPhotoFolder()">
+                                    <i class="fas fa-folder-open"></i> Select Photo Folder
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+
+                </div>
+            </section>
+            
+            <section aria-labelledby="categories-title">
+                <div class="categories-section">
+                    <h3 class="categories-title" id="categories-title"><i class="fas fa-tags"></i> Assign to Categories</h3>
+                    <div class="categories-grid" id="categoriesGrid" role="group">
+                        <!-- Category cards will be generated by JavaScript -->
+                    </div>
+                    <div class="clear-all-container">
+                        <button class="action-btn clear-btn horizontal-btn half-width-btn" id="clearBtn" aria-label="Clear all categories">
+                            <i class="fas fa-eraser"></i> Clear All Categories
+                        </button>
+                    </div>
+                </div>
+            </section>
+            
+            <section aria-labelledby="data-table-title">
+                <div class="data-section">
+                    <div class="data-table-title">
+                        <div>
+                            <h3 id="data-table-title"><i class="fas fa-table"></i> Inspection Records</h3>
+                            <span class="count-badge" id="tableCount">0 entries</span>
+                        </div>
+                        <button class="action-btn horizontal-btn" data-action="all-labels-detail" aria-label="All Labels Detail">
+                            <i class="fas fa-list-alt"></i> All Labels Detail
+                        </button>
+                    </div>
+                    <div class="data-table-container">
+                        <table class="data-table" aria-describedby="data-table-title">
+                            <thead>
+                                <tr>
+                                    <th style="width: 160px;" scope="col">Inspection no.</th>
+                                    <th style="width: 150px;" scope="col">Inspection Date</th>
+                                    <th style="width: 220px;" scope="col">Location (Floor, Area name and Room no. in sequence)</th>
+                                    <th scope="col">A: Exposed structural metalwork</th>
+                                    <th scope="col">B: Structural elements</th>
+                                    <th scope="col">C: External building elements</th>
+                                    <th scope="col">D: Suspended objects</th>
+                                    <th scope="col">E: High level internal finishes</th>
+                                    <th scope="col">F: Heavy metal gates/doors</th>
+                                    <th scope="col">G: Window and glass louvers</th>
+                                    <th scope="col">H: Drainage and Plumbing systems</th>
+                                    <th scope="col">I: Fire safety elements</th>
+                                    <th scope="col">J: Defects</th>
+                                    <th scope="col">Imminent Danger</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dataTableBody">
+                                <tr>
+                                    <td colspan="14" class="empty-state">No data submitted yet</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="table-controls">
+                        <!-- Clear Table 按鈕已移至分類表格下方，這裡移除 -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Defect Summary Table Section -->
+            <section aria-labelledby="defect-summary-title">
+                <div class="data-section">
+                    <div class="data-table-title">
+                        <div>
+                            <h3 id="defect-summary-title"><i class="fas fa-clipboard-list"></i> Defect Summary</h3>
+                            <span class="count-badge" id="defectSummaryCount">0 entries</span>
+                        </div>
+                        <button class="action-btn horizontal-btn" data-action="all-defects-detail" aria-label="All Defects Detail">
+                            <i class="fas fa-clipboard-list"></i> All Defects Detail
+                        </button>
+                    </div>
+                    <div class="data-table-container">
+                        <table class="data-table" aria-describedby="defect-summary-title">
+                            <thead>
+                                <tr>
+                                    <th style="width: 100px;" scope="col">Defect no.</th>
+                                    <th style="width: 200px;" scope="col">Defect(s) with Imminent Danger (Yes/No) Follow up action at Part A.5</th>
+                                    <th style="width: 150px;" scope="col">Locations of Defects (Floor, Area Name and Room No. in sequence)</th>
+                                    <th style="width: 150px;" scope="col">Type of High Risk Building Elements</th>
+                                    <th style="width: 200px;" scope="col">Description / Construction of High Risk Building Elements</th>
+                                    <th style="width: 200px;" scope="col">Existing Condition of of High Risk Building Elements</th>
+                                    <th style="width: 200px;" scope="col">Defects Diagnosis and Deficiencies Identified</th>
+                                    <th style="width: 150px;" scope="col">Relative Humidity of Room / Area measured during Site Inspection</th>
+                                    <th style="width: 150px;" scope="col">Moisture Content of Concrete Structural Elements only</th>
+                                    <th style="width: 150px;" scope="col">Chloride Content of Concrete Structural Elements</th>
+                                    <th style="width: 150px;" scope="col">Depth and Extent of Carbonation for Concrete Structural Elements</th>
+                                    <th style="width: 200px;" scope="col">Scope and Extent of Recommended Follow-up Repair Remedial Works</th>
+                                    <th style="width: 200px;" scope="col">Scope and Extent of Recommended Preventive Maintenance Works</th>
+                                    <th style="width: 150px;" scope="col">Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody id="defectSummaryTableBody">
+                                <tr>
+                                    <td colspan="13" class="empty-state">No defect summary data yet</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 新增 9 個分類表格區塊 -->
+            <section aria-labelledby="category-tables-title">
+                <h3 id="category-tables-title" style="margin:12px 20px 10px 20px;font-size:1.2rem;color:var(--dark);font-weight:700;">
+                    Categories records
+                </h3>
+                <div class="category-tables-section" id="categoryTablesSection">
+                    <!-- 9 tables (A~I) 由 JS 動態產生 -->
+                </div>
+            </section>
+        </main>
+        
+        <footer>
+            &copy; 2025 SSE. All rights reserved | All processing happens locally in your browser
+        </footer>
+    </div>
+
+    <!-- New popup overlay -->
+    <div class="global-overlay" id="globalOverlay" style="display: none;">
+        <div class="overlay-message-container" id="folderOverlay">
+            <h3><i class="fas fa-exclamation-triangle"></i> Unexported Data Detected</h3>
+            <p>You have unexported data in the table. To prevent data loss, please export your data before uploading new photos.</p>
+            <div class="overlay-buttons">
+                <button class="overlay-btn cancel-btn" id="cancelResetBtn">Cancel</button>
+                <button class="overlay-btn" id="forceResetBtn">Reset Application & Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Defect Window -->
+    <div class="defect-window" id="defectWindow" style="font-size: 0.9em;">
+        <div style="display:flex;align-items:flex-start;gap:18px;">
+            <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;">
+                <label for="imminentDangerSwitch">Imminent Danger</label>
+                <div class="switch-container">
+                    <span>No</span>
+                    <label class="switch small-switch">
+                        <input type="checkbox" id="imminentDangerSwitch" aria-label="Imminent danger switch">
+                        <span class="slider round"></span>
+                    </label>
+                    <span>Yes</span>
+                </div>
+            </div>
+            <div style="flex:1;">
+                <h3 style="font-size: 1.5em;margin-bottom:0;"><i class="fas fa-bug"></i> Defect Items</h3>
+                <p>Please select a defect description to assign the photo you choose.</p>
+            </div>
+        </div>
+        <div class="defect-form">
+            <!-- 已徹底移除 defect-form 內重複的 Imminent Danger 欄位與 switch，只保留最上方 flex 區塊的那一組 -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="defectInspectionNo">Inspection no.</label>
+                    <input type="text" id="defectInspectionNo" class="form-control" placeholder="Enter inspection number">
+                </div>
+                <div class="form-group">
+                    <label for="inspectionDateDefect">Inspection Date</label>
+                    <input type="date" id="inspectionDateDefect" class="form-control" placeholder="Enter inspection date">
+                </div>
+                <div class="form-group">
+                    <label for="defectFloor">Floor</label>
+                    <input type="text" id="defectFloor" class="form-control" placeholder="Enter floor">
+                </div>
+                <div class="form-group">
+                    <label for="defectAreaName">Area Name</label>
+                    <input type="text" id="defectAreaName" class="form-control" placeholder="Enter area name">
+                </div>
+                <div class="form-group">
+                    <label for="defectRoomNo">Room No.</label>
+                    <input type="text" id="defectRoomNo" class="form-control" placeholder="Enter room number">
+                </div>
+            </div>
+            <div class="form-group">
+              <label for="defectNo">Defect No.</label>
+              <input type="text" id="defectNo" class="form-control" placeholder="Auto-assigned from defect summary" readonly>
+            </div>
+            <div class="form-group">
+              <label for="defectPhotoNo">Photo no.</label>
+              <input type="text" id="defectPhotoNo" class="form-control" placeholder="Selected photo numbers" readonly>
+            </div>
+            <div class="form-group">
+                <label for="defectCategory">Categories</label>
+                <select id="defectCategory" class="form-control" aria-label="Defect category" style="background-color: #EBFFDF;">
+                    <option value="">Select a category</option>
+                    <option value="a">A: Exposed structural metalwork</option>
+                    <option value="b">B: Structural elements</option>
+                    <option value="c">C: External building elements</option>
+                    <option value="d">D: Suspended objects</option>
+                    <option value="e">E: High level internal finishes</option>
+                    <option value="f">F: Heavy metal gates/doors</option>
+                    <option value="g">G: Window and glass louvers</option>
+                    <option value="h">H: Drainage and Plumbing systems</option>
+                    <option value="i">I: Fire safety elements</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label id="defectTypeLabel">Defect Type</label>
+                <div class="defect-type-input-container">
+                    <input type="text" id="defectTypeDirectInput" class="form-control" placeholder="Enter defect type directly or select from dropdown" style="margin-bottom: 8px; background-color: #EBFFDF;">
+                    <div class="custom-select-container">
+                        <div class="custom-select" id="defectTypeSelect" tabindex="0" aria-labelledby="defectTypeLabel">
+                            <div class="custom-select__trigger">
+                                <span>Or select from dropdown</span>
+                                <div class="arrow"></div>
+                            </div>
+                            <div class="custom-options" id="defectTypeOptions">
+                                                            <div class="search-container">
+                                <div class="search-input-wrapper">
+                                    <input type="text" id="defectSearchInput" placeholder="Search defect types..." class="search-input">
+                                    <button type="button" class="search-clear-btn" id="searchClearBtn" title="Clear search">×</button>
+                                </div>
+                            </div>
+                                <div class="options-list" id="defectOptionsList">
+                                    <span class="custom-option" data-value="">Select a category first</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="defectDescription">Description / Construction of High Risk Building Elements</label>
+                <textarea id="defectDescription" class="form-control" placeholder="Enter description" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="defectExistingCondition">Existing Condition of of High Risk Building Elements</label>
+                <select id="defectExistingCondition" class="form-control" aria-label="Existing condition">
+                    <option value="">Select condition</option>
+                    <option value="Good">Good</option>
+                    <option value="Fair">Fair</option>
+                    <option value="Poor">Poor</option>
+                    <option value="Very Poor">Very Poor</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="defectHumidity">Relative Humidity of Room / Area measured during Site Inspection</label>
+                <input type="text" id="defectHumidity" class="form-control" placeholder="Enter humidity">
+            </div>
+            <div class="form-group">
+                <label for="defectMoisture">Moisture Content of Concrete Structural Elements only</label>
+                <input type="text" id="defectMoisture" class="form-control" placeholder="Enter moisture content">
+            </div>
+            <div class="form-group">
+                <label for="defectChloride">Chloride Content of Concrete Structural Elements</label>
+                <input type="text" id="defectChloride" class="form-control" placeholder="Enter chloride content">
+            </div>
+            <div class="form-group">
+                <label for="defectCarbonation">Depth and Extent of Carbonation for Concrete Structural Elements</label>
+                <input type="text" id="defectCarbonation" class="form-control" placeholder="Enter carbonation details">
+            </div>
+            <div class="form-group">
+                <label for="defectRemedialWorks">Scope and Extent of Recommended Follow-up Repair Remedial Works</label>
+                <textarea id="defectRemedialWorks" class="form-control" placeholder="Enter remedial works" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="defectPreventiveWorks">Scope and Extent of Recommended Preventive Maintenance Works</label>
+                <textarea id="defectPreventiveWorks" class="form-control" placeholder="Enter preventive works" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="defectRemarks">Remarks</label>
+                <textarea id="defectRemarks" class="form-control" placeholder="Enter remarks" rows="2"></textarea>
+            </div>
+        </div>
+        <div class="defect-actions">
+            <button class="defect-btn defect-cancel" id="defectCancelBtn">Cancel</button>
+            <button class="defect-btn defect-assign" id="defectAssignBtn">Assign</button>
+        </div>
+    </div>
+
+
+
+    <!-- 缺陷標記提醒彈窗 -->
+    <div id="defectMarkReminderPopup" style="display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:6000; align-items:center; justify-content:center;">
+        <div class="defect-mark-reminder-container">
+            <div class="defect-mark-reminder-header">
+                <h3><i class="fas fa-map-marker-alt"></i> 缺陷標記放置提醒</h3>
+            </div>
+            <div class="defect-mark-reminder-body">
+                <div class="defect-info-grid">
+                    <div class="defect-info-item">
+                        <label>檢查編號:</label>
+                        <span id="reminderInspectionNo">-</span>
+                    </div>
+                    <div class="defect-info-item">
+                        <label>缺陷編號:</label>
+                        <span id="reminderDefectNo">-</span>
+                    </div>
+                    <div class="defect-info-item">
+                        <label>照片編號:</label>
+                        <span id="reminderPhotoNo">-</span>
+                    </div>
+                    <div class="defect-info-item">
+                        <label>缺陷類型:</label>
+                        <span id="reminderDefectType">-</span>
+                    </div>
+                </div>
+                <div class="defect-mark-instruction">
+                    <p><i class="fas fa-info-circle"></i> 請在樓層平面圖上雙擊來放置缺陷標記</p>
+                </div>
+            </div>
+            <div class="defect-mark-reminder-footer">
+                <button id="gotItBtn" class="got-it-btn">
+                    <i class="fas fa-check"></i> Got it
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF預覽彈窗（預設隱藏） -->
+    <div id="defectPreviewPopup" style="display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.18); z-index:4000; align-items:center; justify-content:center;">
+      <div style="background:rgba(255,255,255,0.4); border-radius:16px; box-shadow:0 8px 32px rgba(30,136,229,0.18); padding:24px 18px; min-width:340px; min-height:480px; max-width:90vw; max-height:90vh; display:flex; flex-direction:column; align-items:center; gap:18px; position:relative; justify-content:center; backdrop-filter: blur(12px) saturate(160%); -webkit-backdrop-filter: blur(12px) saturate(160%); border: 1px solid rgba(255,255,255,0.18);">
+        <!-- Coming Soon Message Banner -->
+        <div class="defect-coming-soon-banner">
+          <i class="fas fa-info-circle" style="margin-right:8px;"></i>This function is coming soon
+        </div>
+        <button id="closeDefectPreview" style="position:absolute; top:50px; right:10px; background:var(--danger); color:white; border:none; border-radius:6px; padding:4px 14px; font-weight:500; cursor:pointer;">Close</button>
+        <button id="exportDefectPDF" style="position:absolute; top:50px; left:10px; background:#9e9e9e; color:white; border:none; border-radius:6px; padding:4px 14px; font-weight:500; cursor:not-allowed; opacity:0.6;" disabled>Export PDF</button>
+        <div style="height:38px;"></div>
+        <div id="defectPreviewContent" style="width:100%;height:100%;overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:60vh;">
+          <!-- 動態填寫版面 -->
+          <div id="pdfCanvas" style="width:100%; height:auto; max-width:100%; max-height:100%; aspect-ratio: 210/297; margin:38px; box-shadow:0 8px 32px 0 rgba(30,136,229,0.18), 0 2px 8px 0 rgba(0,0,0,0.10); background:white; display:flex; flex-direction:column; overflow:hidden; position:relative; border-radius: 12px; font-size:0.5em;">
+            <!-- Coming Soon Overlay -->
+            <div class="defect-function-overlay">
+              <div class="defect-development-message">
+                <i class="fas fa-tools" style="font-size:2em; margin-bottom:10px; color:#ff9800;"></i>
+                <div style="font-weight:600; margin-bottom:5px;">Function Under Development</div>
+                <div style="font-size:0.8em;">This feature will be available soon</div>
+              </div>
+            </div>
+            <div id="defectReportForm" style="width:100%; height:100%; padding:24px; box-sizing:border-box; display:flex; flex-direction:column;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px;">
+                <div style="flex:1;">
+                  <input id="reportTitleInput" type="text" value="Defects Record of Building Inspection (TPH _ Main Building)" style="width:100%;font-size:1.3em;font-weight:700;border:none;border-bottom:1.5px solid #aaa;margin-bottom:8px;outline:none;" />
+                </div>
+                <div style="flex-shrink:0;min-width:220px;max-width:260px;display:flex;flex-direction:column;gap:8px;">
+                  <label style="font-size:0.95em;">Defect No. (問題編號):
+                    <input id="defectNoInput" type="text" value="BSI-NC-TPH-2025-279" style="width:100%;border:1px solid #bbb;border-radius:4px;padding:2px 6px;font-size:1em;" />
+                  </label>
+                  <label style="font-size:0.95em;">CMMS Order No. (維修單編號):
+                    <input id="cmmsNoInput" type="text" value="" style="width:100%;border:1px solid #bbb;border-radius:4px;padding:2px 6px;font-size:1em;" />
+                  </label>
+                  <label style="font-size:0.95em;">Inspection Date (檢查日期):
+                    <input id="inspectionDateInput" type="text" value="7 February 2025" style="width:100%;border:1px solid #bbb;border-radius:4px;padding:2px 6px;font-size:1em;" />
+                  </label>
+                  <label style="font-size:0.95em;">Floor (樓層):
+                    <input id="floorInput" type="text" value="4/F" style="width:100%;border:1px solid #bbb;border-radius:4px;padding:2px 6px;font-size:1em;" />
+                  </label>
+                  <label style="font-size:0.95em;">Room No. (房間編號):
+                    <input id="roomNoInput" type="text" value="4004" style="width:100%;border:1px solid #bbb;border-radius:4px;padding:2px 6px;font-size:1em;" />
+                  </label>
+                  <label style="font-size:0.95em;">Department (部門):
+                    <input id="departmentInput" type="text" value="Lift lobby / Shared Facilities" style="width:100%;border:1px solid #bbb;border-radius:4px;padding:2px 6px;font-size:1em;" />
+                  </label>
+                </div>
+              </div>
+              <!-- 其餘內容暫時保留靜態，之後可動態化 -->
+              <div style="margin:10px 0;">Description of Defect: <br>Water seepage is observed around the cable tray penetrating the ceiling.<br>發現穿過天花板的電纜架周圍有滲水現象。</div>
+              <div style="margin:10px 0;">Photo No.: <b>3708</b></div>
+              <div style="margin:10px 0;"><img src="https://dummyimage.com/400x200/cccccc/333333&text=Photo" style="max-width:100%;border:1px solid #aaa;"></div>
+              <div style="margin:10px 0;">Recommended Follow-up Works:<br>Fix the area affected by water leakage. Repaint the wall.<br>修復滲水影響的範圍，牆身重新油漆。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 引入html2pdf.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- 引入pdf-lib CDN -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <!-- 引入配置和工具檔案 -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/performance.js"></script>
+    <script src="js/data-validator.js"></script>
+    <script src="js/image-optimizer.js"></script>
+    <!-- 引入主要 JavaScript 檔案 -->
+    <script src="js/main.js"></script>
+    <!-- 引入優化補丁 -->
+    <script src="js/optimization-patch.js"></script>
+
+    <!-- Resize Photo 浮動選單（仿 defect-window） -->
+    <div class="resize-photo-window" id="resizePhotoWindow" style="display:none;">
+      <div class="resize-photo-header">
+        <h3><i class="fas fa-expand-arrows-alt"></i> Resize Photo</h3>
+        <button id="resizePhotoCloseBtn" class="resize-photo-close" title="Close">&times;</button>
+      </div>
+      <div class="resize-photo-body">
+        <button id="quickSelectPhotoFolderBtn" class="defect-btn defect-assign" style="margin-bottom:10px;min-width:180px;font-size:1.1em;"><i class="fas fa-folder-open"></i> Select Photo Folder</button>
+        <div id="quickSelectedFolderPath" style="font-size:0.95em;color:#666;margin-bottom:12px;word-break:break-all;display:none;"></div>
+        <div class="resize-photo-options" id="resizePhotoOptions" style="display:flex;">
+          <label><input type="radio" name="resizePhotoSizeQuick" value="320"> 320px</label>
+          <label><input type="radio" name="resizePhotoSizeQuick" value="640" checked> 640px (default)</label>
+          <label><input type="radio" name="resizePhotoSizeQuick" value="960"> 960px</label>
+        </div>
+        <button id="quickResizeOutputBtn" class="defect-btn defect-assign" style="margin-top:18px;min-width:160px;font-size:1.1em;">Output</button>
+      </div>
+    </div>
+
+    <!-- Labels Detail Popup -->
+    <div id="labelsDetailPopup" class="detail-popup" style="display: none;">
+        <div class="detail-popup-container">
+            <div class="detail-popup-header">
+                <h3><i class="fas fa-list-alt"></i> All Labels Detail</h3>
+                <button id="closeLabelsDetailBtn" class="detail-popup-close" title="Close">&times;</button>
+            </div>
+            <div class="detail-popup-body">
+                <div class="detail-table-container">
+                    <table id="labelsDetailTable" class="detail-table">
+                        <thead>
+                            <tr>
+                                <th>Actions</th>
+                                <th>Inspection No.</th>
+                                <th>Floor</th>
+                                <th>Area Name</th>
+                                <th>Room No.</th>
+                                <th>Inspection Date</th>
+                                <th>A: Exposed structural metalwork</th>
+                                <th>B: Structural elements</th>
+                                <th>C: External building elements</th>
+                                <th>D: Suspended objects</th>
+                                <th>E: High level internal finishes</th>
+                                <th>F: Heavy metal gates/doors</th>
+                                <th>G: Window and glass louvers</th>
+                                <th>H: Drainage and Plumbing systems</th>
+                                <th>I: Fire safety elements</th>
+                                <th>J: Defects</th>
+                                <th>Imminent Danger</th>
+                            </tr>
+                        </thead>
+                        <tbody id="labelsDetailTableBody">
+                            <!-- Labels data will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="detail-popup-actions">
+                    <!-- Save button removed - changes are saved automatically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Defects Detail Popup -->
+    <div id="defectsDetailPopup" class="detail-popup" style="display: none;">
+        <div class="detail-popup-container">
+            <div class="detail-popup-header">
+                <h3><i class="fas fa-clipboard-list"></i> All Defects Detail</h3>
+                <button id="closeDefectsDetailBtn" class="detail-popup-close" title="Close">&times;</button>
+            </div>
+            <div class="detail-popup-body">
+                <div class="detail-table-container">
+                    <table id="defectsDetailTable" class="detail-table">
+                        <thead>
+                            <tr>
+                                <th>Actions</th>
+                                <th>Defect No.</th>
+                                <th>Inspection No.</th>
+                                <th>Inspection Date</th>
+                                <th>Floor</th>
+                                <th>Area Name</th>
+                                <th>Room No.</th>
+                                <th>Photo No.</th>
+                                <th>Categories</th>
+                                <th>Defect Type</th>
+                                <th>Description / Construction</th>
+                                <th>Existing Condition</th>
+                                <th>Relative Humidity</th>
+                                <th>Moisture Content</th>
+                                <th>Chloride Content</th>
+                                <th>Carbonation</th>
+                                <th>Remedial Works</th>
+                                <th>Preventive Works</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody id="defectsDetailTableBody">
+                            <!-- Defects data will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="detail-popup-actions">
+                    <!-- Save button removed - changes are saved automatically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floor Plan Overlay -->
+    <div id="floorPlanOverlay" class="floor-plan-overlay" style="display: none;">
+        <div class="floor-plan-container">
+
+            <!-- header - 功能按鈕區域 -->
+            <div class="floor-plan-header" style="border-bottom: 2px solid #eee; padding: 0 30px; height: 70px; display: flex; align-items: center; background: #8FBC8F; opacity: 1;">
+                <div style="display:flex; align-items:center; gap:10px; width: 100%; justify-content: space-between;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div class="floor-plan-menu-container" style="position: relative; display: inline-block; margin-right: 10px;">
+                            <button id="floorPlanMenuBtn" class="upload-btn" style="padding: 0; font-size: 1.2rem; background: #D3D3D3; margin: 0; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                                <i class="fas fa-bars"></i>
+                            </button>
+                            <div class="floor-plan-dropdown" id="floorPlanDropdown" style="display: none;">
+                                <div class="floor-plan-dropdown-item" data-action="new-floor-plan">
+                                    <i class="fas fa-plus"></i> New Floor Plan
+                                </div>
+                                <div class="floor-plan-dropdown-item" data-action="show-details" style="position: relative;">
+                                    <i class="fas fa-info-circle"></i> Show Details
+                                    <i class="fas fa-chevron-right" style="margin-left: auto; font-size: 12px; pointer-events: none;"></i>
+                                    <div class="show-details-dropdown" id="showDetailsDropdown">
+                                        <div class="show-details-dropdown-item" data-action="all-labels-detail">
+                                            <i class="fas fa-list-alt"></i> All Labels Detail
+                                        </div>
+                                        <div class="show-details-dropdown-item" data-action="all-defects-detail">
+                                            <i class="fas fa-clipboard-list"></i> All Defects Detail
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="floor-plan-dropdown-item" data-action="clear-data" style="position: relative;">
+                                    <i class="fas fa-trash"></i> Clear Data
+                                    <i class="fas fa-chevron-right" style="margin-left: auto; font-size: 12px; pointer-events: none;"></i>
+                                    <div class="clear-data-dropdown" id="clearDataDropdown">
+                                        <div class="clear-data-dropdown-item" data-action="clear-all-labels">
+                                            <i class="fas fa-trash-alt"></i> Clear All Labels
+                                        </div>
+                                        <div class="clear-data-dropdown-item" data-action="clear-all-defect-marks">
+                                            <i class="fas fa-times-circle"></i> Clear All Defect Marks
+                                        </div>
+                                        <div class="clear-data-dropdown-item" data-action="clear-all-data">
+                                            <i class="fas fa-eraser"></i> Clear All Labels & Defect Marks
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="floor-plan-dropdown-item" data-action="export-to-pdf">
+                                    <i class="fas fa-file-pdf"></i> Export as PDF
+                                </div>
+                            </div>
+                        </div>
+                        <h3 style="margin: 0; font-size: 20px; display: flex; align-items: center; gap: 10px;">
+                            Drawing mode
+                        </h3>
+                        <div style="width: 200px;"></div>
+                        <button id="addLabelBtn" class="upload-btn" style="padding: 0; font-size: 14px; background: #D3D3D3; color: #007EFF; height: 35px; width: 35px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: bold;">123</button>
+                        
+                        <!-- Quick Label Switch -->
+                        <div class="quick-label-switch-container" style="display: flex; align-items: center; gap: 8px; margin-left: 10px;">
+                            <span style="font-size: 12px; color: #666; white-space: nowrap;">Quick Label</span>
+                            <label class="switch">
+                                <input type="checkbox" id="quickLabelSwitch">
+                                <span class="slider round"></span>
+                            </label>
+                            <!-- Quick Label Instruction Message -->
+                            <div id="quickLabelInstruction" class="quick-label-instruction" style="display: none; margin-left: 10px; padding: 6px 12px; background: #e3f2fd; color: #1976d2; border-radius: 6px; font-size: 11px; font-weight: 500; white-space: nowrap; border-left: 3px solid #2196f3;">
+                                <i class="fas fa-mouse-pointer" style="margin-right: 4px;"></i>
+                                雙擊平面圖放置標籤
+                            </div>
+                        </div>
+                        
+                        <!-- Defect Mark Instruction Message -->
+                        <div id="defectMarkInstruction" class="defect-mark-instruction" style="display: none; margin-left: 10px; padding: 6px 12px; background: #ffebee; color: #c62828; border-radius: 6px; font-size: 11px; font-weight: 500; white-space: nowrap; border-left: 3px solid #f44336; z-index: 1000; position: relative;">
+                            <i class="fas fa-exclamation-triangle" style="margin-right: 4px;"></i>
+                            雙擊平面圖放置缺陷標記
+                        </div>
+                            
+                            <!-- Label Size 控制，使用與 zoomSlider 相同的樣式 -->
+                            <div class="zoom-controls" style="margin-left: 30px; display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 12px; color: #666; white-space: nowrap; min-width: 60px;">Label size</span>
+                                <input type="range" id="labelSizeSlider" min="5" max="60" value="24" step="1" aria-label="Label size control">
+                                <span class="size-value" id="labelSizeValue">24px</span>
+                            </div>
+                            
+                            
+                            <!-- Defect Size 控制，使用與 zoomSlider 相同的樣式 -->
+                            <div class="zoom-controls" style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 12px; color: #666; white-space: nowrap; min-width: 60px;">Defect size</span>
+                                <input type="range" id="defectSizeSlider" min="5" max="60" value="24" step="1" aria-label="Defect size control">
+                                <span class="defect-size-value" id="defectSizeValue">24px</span>
+                            </div>
+                            
+                            <!-- Detail Buttons -->
+                            <div style="display: flex; align-items: center; gap: 5px; margin-left: 10px;">
+                                <button class="action-btn" data-action="all-labels-detail" aria-label="All Labels Detail" style="padding: 0; background: #D3D3D3; color: #333; height: 35px; width: 35px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; cursor: pointer;" title="All Labels Detail">
+                                    <i class="fas fa-list-alt" style="font-size: 10px !important; margin: 0 !important;"></i>
+                                </button>
+                                <button class="action-btn" data-action="all-defects-detail" aria-label="All Defects Detail" style="padding: 0; background: #D3D3D3; color: #333; height: 35px; width: 35px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; cursor: pointer;" title="All Defects Detail">
+                                    <i class="fas fa-clipboard-list" style="font-size: 10px !important; margin: 0 !important;"></i>
+                                </button>
+                            </div>
+                            
+                        </div>
+                        
+                        <div style="display:flex; align-items:center; gap:5px;">
+                            <!-- 縮放至100%按鈕 -->
+                            <button id="zoomTo100Btn" class="upload-btn" style="padding: 0; font-size: 14px; background: #D3D3D3; color: #333; height: 35px; width: 35px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; cursor: pointer;" title="Zoom to 100% and center">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            <button id="closeFloorPlanBtn" class="floor-plan-close-text" title="Close" style="background: #ff6b6b; color: white; font-size: 14px; cursor: pointer; height: 35px; width: 35px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; padding: 0;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+            </div>
+            <div class="floor-plan-content">
+                <div id="floorPlanUploadArea" class="floor-plan-upload-area">
+                    <input type="file" id="floorPlanFileInput" accept=".pdf" style="visibility: hidden; position: absolute; left: -9999px;">
+                    
+                    <!-- 當有標籤數據時的提示區域 -->
+                    <div id="labelsDataReminder" class="labels-data-reminder" style="display: none;">
+                        <i class="fas fa-info-circle fa-3x"></i>
+                        <h4>Previous Floor Plan Data Found</h4>
+                        <p>You have label data from a previous floor plan. To view and manage these labels, please open the same floor plan file.</p>
+                        <div class="previous-file-info">
+                            <strong>Previous file:</strong> <span id="previousFileName">Unknown</span>
+                            <div class="file-details" id="fileDetails" style="margin-top: 8px; font-size: 0.9em; color: #666;">
+                                <!-- File details will be populated here -->
+                            </div>
+                        </div>
+                        <button id="openPreviousFloorPlanBtn" type="button" class="upload-btn" style="margin-top: 15px;">
+                            <i class="fas fa-folder-open"></i> Open Previous Floor Plan
+                        </button>
+                    </div>
+                    
+                    <!-- 原本的上傳區域 -->
+                    <div id="uploadPlaceholder" class="upload-placeholder">
+                        <i class="fas fa-cloud-upload-alt fa-3x"></i>
+                        <p>Click to upload PDF floor plan</p>
+                        <button id="uploadFloorPlanBtn" type="button" class="upload-btn">Choose File</button>
+                    </div>
+                </div>
+                <div id="floorPlanViewer" class="floor-plan-viewer" style="display: none;">
+                    <!-- PDF顯示層 -->
+                    <canvas id="floorPlanCanvas" style="position: absolute; top: 0; left: 0;"></canvas>
+                    <!-- 標籤層 -->
+                    <div id="labelLayer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;">
+                        <!-- 標籤元素將動態添加到這裡 -->
+                    </div>
+                    <div id="labelModalOverlay" class="label-modal-overlay">
+                        <div class="label-modal">
+                            <div class="label-modal-header">
+                            <h4>New Label</h4>
+                                <div class="auto-number-switch">
+                                    <label class="switch">
+                                        <input type="checkbox" id="autoNumberSwitch">
+                                        <span class="slider round"></span>
+                                    </label>
+                                    <span class="switch-label">Auto Number</span>
+                                </div>
+                            </div>
+                            <div class="label-form">
+                                <div>
+                                    <label for="labelInspectionNo" class="required-field">Inspection no. *</label>
+                                    <input type="text" id="labelInspectionNo" required />
+                                </div>
+                                <div id="floorField" class="optional-fields">
+                                    <label for="labelFloor" class="optional-field">Floor (Optional)</label>
+                                    <input type="text" id="labelFloor" placeholder="Enter floor number" />
+                                </div>
+                                <div id="areaNameField" class="optional-fields">
+                                    <label for="labelAreaName" class="optional-field">Area name (Optional)</label>
+                                    <input type="text" id="labelAreaName" placeholder="Enter area name" />
+                                </div>
+                                <div id="roomNoField" class="optional-fields">
+                                    <label for="labelRoomNo" class="optional-field">Room no. (Optional)</label>
+                                    <input type="text" id="labelRoomNo" placeholder="Enter room number" />
+                                </div>
+                                <div id="inspectionDateField" style="display: none;">
+                                    <label for="labelInspectionDate" class="optional-field">Inspection date (Optional)</label>
+                                    <input type="date" id="labelInspectionDate" />
+                                </div>
+                            </div>
+                            <div class="form-note">
+                                <small style="color: #666; font-style: italic;">* Only Inspection No. is required</small>
+                                <br>
+                                <small style="color: #888; font-style: italic;">Other fields are optional and can be filled later</small>
+                            </div>
+                            <div class="label-actions">
+                                <button id="labelCancelBtn" class="btn btn-secondary">Cancel</button>
+                                <button id="labelCreateBtn" class="btn btn-primary">Create</button>
+                                <button id="assignToNewRecordBtn" class="btn btn-info" style="display: none;">Save and Assign to New Record</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                                </div>
+                                </div>
+        </div>
+    </div>
+    
+</body>
+</html>
